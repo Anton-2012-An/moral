@@ -34,7 +34,6 @@
             transition: all 0.25s ease;
         }
 
-        /* Главная страница */
         .page {
             display: block;
         }
@@ -121,7 +120,6 @@
             line-height: 1;
         }
 
-        /* Чат */
         .chat-header {
             display: flex;
             align-items: center;
@@ -255,7 +253,6 @@
             background: #1f2e46;
         }
 
-        /* Список чатов */
         .chats-list {
             margin-top: 6px;
         }
@@ -272,6 +269,7 @@
             margin-bottom: 12px;
             border: 1px solid rgba(255, 255, 255, 0.5);
             transition: 0.15s;
+            cursor: pointer;
         }
 
         .chat-item:hover {
@@ -349,7 +347,22 @@
             letter-spacing: 0.3px;
         }
 
-        /* адаптив */
+        .typing-indicator {
+            display: none;
+            align-self: flex-start;
+            background: white;
+            padding: 10px 18px;
+            border-radius: 24px;
+            border-bottom-left-radius: 6px;
+            border: 1px solid rgba(0,0,0,0.02);
+            color: #6b7d92;
+            font-size: 0.9rem;
+        }
+
+        .typing-indicator.active {
+            display: block;
+        }
+
         @media (max-width: 480px) {
             .app { padding: 20px 16px; }
             .hero h1 { font-size: 2.2rem; }
@@ -385,10 +398,10 @@
                 <span style="font-size:1.2rem; opacity:0.4;">⏺</span>
             </div>
             <div class="chat-window" id="chatWindow">
-                <div class="message bot">👋 Привет! Я здесь, чтобы поддержать тебя. Расскажи, что случилось?</div>
+                <div class="message bot">👋 Привет! Я здесь, чтобы помочь тебе найти решение. Расскажи, что тебя беспокоит, и я постараюсь дать полезный совет.</div>
             </div>
             <div class="input-area">
-                <input type="text" id="chatInput" placeholder="Напиши свою мысль..." autofocus>
+                <input type="text" id="chatInput" placeholder="Опиши свою ситуацию..." autofocus>
                 <button id="sendBtn">Отправить</button>
             </div>
             <div style="margin-top: 10px; font-size:0.8rem; color:#6f7f92; text-align:right; opacity:0.5;">всё анонимно</div>
@@ -401,9 +414,7 @@
                 <h2>📂 мои чаты</h2>
                 <span style="font-size:1.2rem; opacity:0.3;">🗑️</span>
             </div>
-            <div id="chatsContainer" class="chats-list">
-                <!-- рендер через js -->
-            </div>
+            <div id="chatsContainer" class="chats-list"></div>
             <div style="margin-top: 20px; text-align:center;">
                 <button class="btn btn-outline" id="clearAllChats" style="width:100%; padding:14px; font-size:1rem; background: rgba(255,0,0,0.02); border-color: #d4c4c4; color: #7a5a5a;">
                     🧹 Очистить все чаты
@@ -413,10 +424,8 @@
     </div>
     <script>
         (function(){
-            // ----- Хранилище (localStorage) -----
             const STORAGE_KEY = 'support_chats';
 
-            // структура: { id: string, title: string, created: string, lastActive: string, messages: [{role, text, time}] }
             function getChats() {
                 try {
                     const raw = localStorage.getItem(STORAGE_KEY);
@@ -429,16 +438,13 @@
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
             }
 
-            // Генерация ID
             function generateId() {
                 return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
             }
 
-            // ----- Текущее состояние -----
-            let currentChatId = null; // id активного чата (если в чате)
+            let currentChatId = null;
             let chats = getChats();
 
-            // DOM элементы
             const mainPage = document.getElementById('mainPage');
             const chatPage = document.getElementById('chatPage');
             const chatsPage = document.getElementById('chatsPage');
@@ -447,13 +453,11 @@
             const sendBtn = document.getElementById('sendBtn');
             const chatsContainer = document.getElementById('chatsContainer');
 
-            // Навигация
             function showPage(pageId) {
                 document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
                 document.getElementById(pageId).classList.remove('hidden');
             }
 
-            // ----- Рендер списка чатов -----
             function renderChatsList() {
                 const chats = getChats();
                 if (chats.length === 0) {
@@ -461,7 +465,6 @@
                     return;
                 }
 
-                // сортировка по последней активности (новые сверху)
                 const sorted = [...chats].sort((a,b) => new Date(b.lastActive) - new Date(a.lastActive));
 
                 let html = '';
@@ -469,7 +472,6 @@
                     const createdDate = new Date(chat.created).toLocaleDateString('ru-RU', {day:'2-digit', month:'short', year:'numeric'});
                     const lastDate = new Date(chat.lastActive).toLocaleDateString('ru-RU', {day:'2-digit', month:'short', year:'numeric'});
                     const lastTime = new Date(chat.lastActive).toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
-                    // превью: первое сообщение пользователя или бота
                     const firstUserMsg = chat.messages.find(m => m.role === 'user');
                     const preview = firstUserMsg ? firstUserMsg.text.slice(0, 40) + (firstUserMsg.text.length>40?'…':'') : 'нет сообщений';
 
@@ -492,7 +494,6 @@
 
                 chatsContainer.innerHTML = html;
 
-                // удаление чата
                 document.querySelectorAll('.delete-btn').forEach(btn => {
                     btn.addEventListener('click', function(e) {
                         e.stopPropagation();
@@ -502,7 +503,6 @@
                             current = current.filter(c => c.id !== id);
                             saveChats(current);
                             renderChatsList();
-                            // если удалили активный чат, сбросить
                             if (currentChatId === id) {
                                 currentChatId = null;
                             }
@@ -510,7 +510,6 @@
                     });
                 });
 
-                // клик по чату — открыть (пока просто переходим в чат и загружаем сообщения)
                 document.querySelectorAll('.chat-item').forEach(item => {
                     item.addEventListener('click', function() {
                         const id = this.dataset.chatId;
@@ -521,18 +520,15 @@
                 });
             }
 
-            // ----- Открыть чат по ID (загружаем историю) -----
             function openChatById(chatId) {
                 const chats = getChats();
                 const chat = chats.find(c => c.id === chatId);
                 if (!chat) return;
 
                 currentChatId = chatId;
-                // очищаем окно чата
                 chatWindow.innerHTML = '';
-                // выводим все сообщения
                 if (chat.messages.length === 0) {
-                    chatWindow.innerHTML = `<div class="message bot">👋 Привет! Я здесь, чтобы поддержать тебя. Расскажи, что случилось?</div>`;
+                    chatWindow.innerHTML = `<div class="message bot">👋 Привет! Я здесь, чтобы помочь тебе найти решение. Расскажи, что тебя беспокоит, и я постараюсь дать полезный совет.</div>`;
                 } else {
                     chat.messages.forEach(msg => {
                         const div = document.createElement('div');
@@ -546,17 +542,11 @@
                         }
                         chatWindow.appendChild(div);
                     });
-                    // если сообщений нет, добавить приветствие
-                    if (chat.messages.length === 0) {
-                        chatWindow.innerHTML = `<div class="message bot">👋 Привет! Я здесь, чтобы поддержать тебя. Расскажи, что случилось?</div>`;
-                    }
                 }
-                // прокрутка вниз
                 chatWindow.scrollTop = chatWindow.scrollHeight;
                 showPage('chatPage');
             }
 
-            // ----- НОВЫЙ ЧАТ (старт) -----
             function startNewChat() {
                 const id = generateId();
                 const now = new Date().toISOString();
@@ -571,18 +561,87 @@
                 current.push(newChat);
                 saveChats(current);
                 currentChatId = id;
-                // открываем чат
                 openChatById(id);
             }
 
-            // ----- Отправить сообщение (чат) -----
+            function generateAdvice(text) {
+                const lower = text.toLowerCase();
+                
+                // Конкретные советы на основе ключевых слов
+                if (lower.includes('груст') || lower.includes('печал') || lower.includes('тоск') || lower.includes('депресси')) {
+                    return '💡 **Вот что может помочь при грусти:**\n\n' +
+                           '1. **Дневник эмоций** — запиши свои чувства на бумаге, это помогает их осознать.\n' +
+                           '2. **Маленькие радости** — сделай сегодня что-то приятное для себя: вкусный чай, прогулка, любимая музыка.\n' +
+                           '3. **Общение** — даже короткий разговор с близким человеком может облегчить состояние.\n' +
+                           '4. **Физическая активность** — 15 минут лёгкой зарядки поднимают настроение.\n' +
+                           '5. **Помни**: грусть — это нормально, она проходит. Если чувства не отпускают, обратись к психологу.';
+                } else if (lower.includes('тревог') || lower.includes('боюс') || lower.includes('страх') || lower.includes('паник')) {
+                    return '💡 **Советы при тревоге и страхе:**\n\n' +
+                           '1. **Дыхание 4-7-8** — вдох 4 сек, задержка 7 сек, выдох 8 сек. Повтори 5 раз.\n' +
+                           '2. **Заземление** — найди 5 вещей вокруг, 4 звука, 3 тактильных ощущения, 2 запаха, 1 вкус.\n' +
+                           '3. **Спроси себя**: "Что я могу контролировать прямо сейчас?" Сосредоточься на этом.\n' +
+                           '4. **Отвлечение** — посмотри короткое видео, послушай подкаст или займись уборкой.\n' +
+                           '5. Если тревога сильная, обратись к специалисту. Ты не один!';
+                } else if (lower.includes('одиночеств') || lower.includes('никто не') || lower.includes('никому не нужен')) {
+                    return '💡 **Что делать с чувством одиночества:**\n\n' +
+                           '1. **Начни с малого** — напиши сообщение старому другу или знакомому.\n' +
+                           '2. **Присоединись к сообществу** — найди группы по интересам (книги, спорт, творчество).\n' +
+                           '3. **Волонтёрство** — помощь другим помогает почувствовать связь с миром.\n' +
+                           '4. **Заведи ритуал** — ежедневный поход в кафе, прогулка в парке, где ты можешь видеть людей.\n' +
+                           '5. Помни: ты ценен и важен. Одиночество — это временное состояние.';
+                } else if (lower.includes('работа') || lower.includes('устал') || lower.includes('выгорел') || lower.includes('стресс')) {
+                    return '💡 **Как справиться с рабочим стрессом и выгоранием:**\n\n' +
+                           '1. **Границы** — чётко отделяй рабочее время от личного. Выключи уведомления после работы.\n' +
+                           '2. **Микропаузы** — каждые 45 минут вставай и делай разминку на 2 минуты.\n' +
+                           '3. **Планирование** — составь список задач на день и отмечай выполненные.\n' +
+                           '4. **Хобби** — найди занятие, которое приносит радость вне работы.\n' +
+                           '5. Если чувствуешь, что не справляешься — поговори с руководителем или подумай об отпуске.';
+                } else if (lower.includes('сон') || lower.includes('бессонниц') || lower.includes('не сплю')) {
+                    return '💡 **Рекомендации для здорового сна:**\n\n' +
+                           '1. **Режим** — ложись и вставай в одно и то же время даже в выходные.\n' +
+                           '2. **Ритуал перед сном** — тёплая ванна, чтение книги (не с экрана!), медитация.\n' +
+                           '3. **Экранное время** — за 1-2 часа до сна убери телефон и компьютер.\n' +
+                           '4. **Кофеин** — не пей кофе и чай за 6 часов до сна.\n' +
+                           '5. **Проветривание** — прохлада в комнате (18-20°C) помогает лучше заснуть.';
+                } else if (lower.includes('отношени') || lower.includes('ссор') || lower.includes('конфликт') || lower.includes('любовь')) {
+                    return '💡 **Советы по отношениям:**\n\n' +
+                           '1. **Активное слушание** — прежде чем отвечать, повтори слова партнёра своими словами.\n' +
+                           '2. **Я-сообщения** — говори о своих чувствах: "Мне грустно, когда...", вместо "Ты всегда..."\n' +
+                           '3. **Тайм-аут** — если эмоции зашкаливают, возьми паузу на 10-15 минут.\n' +
+                           '4. **Благодарность** — замечай и говори о том, что ценишь в партнёре.\n' +
+                           '5. Если конфликт не решается, подумай о совместной консультации у психолога.';
+                } else {
+                    const advices = [
+                        '💡 **Общие рекомендации для улучшения состояния:**\n\n' +
+                        '1. **Дыши глубже** — сделай 5 медленных глубоких вдохов и выдохов.\n' +
+                        '2. **Сделай одно маленькое действие** — убери на столе, выйди на 5 минут на улицу.\n' +
+                        '3. **Напиши 3 вещи** — за которые ты благодарен(на) себе сегодня.\n' +
+                        '4. **Посмотри на ситуацию со стороны** — что бы ты посоветовал(а) другу?\n' +
+                        '5. **Помни**: ты не обязан(а) решать всё сразу. Можно двигаться шаг за шагом.',
+
+                        '💡 **Вот что можно сделать прямо сейчас:**\n\n' +
+                        '1. **Выпей стакан воды** — маленький шаг для заботы о себе.\n' +
+                        '2. **Скажи себе 3 добрых слова** — вслух или мысленно.\n' +
+                        '3. **Сделай простое упражнение** — потянись, покрути шеей, разомни плечи.\n' +
+                        '4. **Запиши одну мысль** — что тебя беспокоит, на бумагу.\n' +
+                        '5. **Запланируй что-то приятное** — даже через 2 часа, это даст ощущение контроля.',
+
+                        '💡 **Практические шаги для решения проблемы:**\n\n' +
+                        '1. **Определи проблему** — сформулируй её в одном предложении.\n' +
+                        '2. **Разбей на части** — выдели 3-4 подзадачи.\n' +
+                        '3. **Найди ресурсы** — кто или что может помочь?\n' +
+                        '4. **Сделай первый шаг** — самый маленький, но конкретный.\n' +
+                        '5. **Отслеживай прогресс** — записывай даже маленькие достижения.'
+                    ];
+                    return advices[Math.floor(Math.random() * advices.length)];
+                }
+            }
+
             function sendMessage() {
                 const text = chatInput.value.trim();
                 if (!text) return;
                 if (!currentChatId) {
-                    // если вдруг нет active, создаём новый
                     startNewChat();
-                    // повторный вызов через небольшой таймаут
                     setTimeout(() => {
                         chatInput.value = text;
                         sendMessage();
@@ -590,11 +649,9 @@
                     return;
                 }
 
-                // получаем актуальный чат
                 let chats = getChats();
                 const chatIndex = chats.findIndex(c => c.id === currentChatId);
                 if (chatIndex === -1) {
-                    // если чат не найден (удалён), создаём новый
                     startNewChat();
                     setTimeout(() => {
                         chatInput.value = text;
@@ -604,7 +661,6 @@
                 }
 
                 const chat = chats[chatIndex];
-                // добавляем сообщение пользователя
                 const userMsg = {
                     role: 'user',
                     text: text,
@@ -612,14 +668,11 @@
                 };
                 chat.messages.push(userMsg);
                 chat.lastActive = new Date().toISOString();
-                // обновляем заголовок (если первый диалог)
                 if (chat.messages.length === 1) {
                     chat.title = text.slice(0, 30) + (text.length>30?'…':'');
                 }
-                // сохраняем
                 saveChats(chats);
 
-                // рендерим в окне
                 const userDiv = document.createElement('div');
                 userDiv.className = 'message user';
                 userDiv.textContent = text;
@@ -627,10 +680,18 @@
                 chatInput.value = '';
                 chatWindow.scrollTop = chatWindow.scrollHeight;
 
-                // Имитация ответа нейросети (задержка)
-                const botReply = generateBotReply(text);
+                // Показываем индикатор печати
+                const typingDiv = document.createElement('div');
+                typingDiv.className = 'typing-indicator active';
+                typingDiv.textContent = '✍️ анализирую ситуацию...';
+                chatWindow.appendChild(typingDiv);
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+
                 setTimeout(() => {
-                    // обновляем чат с ответом бота
+                    // Убираем индикатор
+                    chatWindow.removeChild(typingDiv);
+                    
+                    const botReply = generateAdvice(text);
                     let updatedChats = getChats();
                     const updatedIndex = updatedChats.findIndex(c => c.id === currentChatId);
                     if (updatedIndex === -1) return;
@@ -643,9 +704,9 @@
                     updatedChats[updatedIndex].lastActive = new Date().toISOString();
                     saveChats(updatedChats);
 
-                    // отображаем
                     const botDiv = document.createElement('div');
                     botDiv.className = 'message bot';
+                    botDiv.style.whiteSpace = 'pre-wrap';
                     botDiv.textContent = botReply;
                     const meta = document.createElement('span');
                     meta.className = 'meta';
@@ -653,43 +714,16 @@
                     botDiv.appendChild(meta);
                     chatWindow.appendChild(botDiv);
                     chatWindow.scrollTop = chatWindow.scrollHeight;
-                }, 400 + Math.random() * 400);
+                }, 800 + Math.random() * 600);
             }
 
-            // ----- Простая "нейросеть" (имитация) -----
-            function generateBotReply(text) {
-                const lower = text.toLowerCase();
-                if (lower.includes('груст') || lower.includes('печал') || lower.includes('тоск')) {
-                    return 'Мне очень жаль, что ты чувствуешь грусть. 🌧️ Помни, что эти чувства временны. Ты сильный человек, и я рядом. Расскажи, что приносит тебе радость?';
-                } else if (lower.includes('тревог') || lower.includes('боюс') || lower.includes('страх')) {
-                    return 'Тревога — это тяжело. 😟 Давай попробуем сделать глубокий вдох. Ты в безопасности. Что именно тебя беспокоит? Я здесь, чтобы выслушать.';
-                } else if (lower.includes('одиночеств') || lower.includes('никто')) {
-                    return 'Одиночество — сложное чувство. 🫂 Но ты не один. Я с тобой. Расскажи, что тебя тревожит? Иногда разговор помогает найти свет.';
-                } else if (lower.includes('спасиб')) {
-                    return 'Пожалуйста! 😊 Ты делаешь большой шаг, обращаясь за поддержкой. Я всегда рад помочь. Рассказывай, что ещё тебя волнует?';
-                } else if (lower.includes('радост') || lower.includes('счастлив') || lower.includes('хорош')) {
-                    return 'Как здорово, что ты делишься радостью! 🌟 Это так важно. Расскажи подробнее, что делает тебя счастливым? Я хочу запомнить этот момент.';
-                } else {
-                    const replies = [
-                        'Я слышу тебя. 💬 Расскажи подробнее, я здесь, чтобы поддержать.',
-                        'Ты проходишь через важный этап. 🧡 Мне важно знать, что ты чувствуешь.',
-                        'Спасибо, что поделился. Это требует смелости. 🦁 Я рядом, продолжай.',
-                        'Понимаю. Иногда слова сложно подобрать. Но я готов слушать столько, сколько нужно.'
-                    ];
-                    return replies[Math.floor(Math.random() * replies.length)];
-                }
-            }
-
-            // ----- Очистить все чаты -----
             function clearAllChats() {
                 if (confirm('Удалить ВСЕ чаты без возможности восстановления?')) {
                     saveChats([]);
                     renderChatsList();
                     if (currentChatId) {
                         currentChatId = null;
-                        // если мы в чате, перекинем на главную
                         if (!document.getElementById('mainPage').classList.contains('hidden')) {
-                            // уже на главной
                         } else {
                             showPage('mainPage');
                         }
@@ -697,7 +731,6 @@
                 }
             }
 
-            // ----- Инициализация кнопок и навигации -----
             document.getElementById('startChatBtn').addEventListener('click', function() {
                 startNewChat();
             });
@@ -709,7 +742,7 @@
 
             document.getElementById('backFromChat').addEventListener('click', function() {
                 showPage('mainPage');
-                currentChatId = null; // сбрасываем, но чаты сохранены
+                currentChatId = null;
             });
 
             document.getElementById('backFromChats').addEventListener('click', function() {
@@ -723,25 +756,9 @@
                 if (e.key === 'Enter') sendMessage();
             });
 
-            // если при загрузке есть чаты, но мы на главной — ничего не делаем.
-            // но можем показать список при переходе.
-
-            // на случай если в чате с уже существующим
             window.addEventListener('load', function() {
-                // проверяем, есть ли сохранённый чат
-                const chats = getChats();
-                if (chats.length === 0) {
-                    // приветственный чат? нет, показываем главную.
-                }
                 showPage('mainPage');
             });
-
-            // Дополнительно: при открытии страницы чата без id (защита)
-            // если мы перешли в чат без id — создать новый
-            // но мы всегда идём через startNewChat или openChatById
-
-            // для обратной совместимости: если чат не выбран, а кнопка отправить — стартуем новый
-            // уже обработано в sendMessage
 
         })();
     </script>
